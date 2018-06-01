@@ -161,7 +161,7 @@ class SimpleCaptcha {
      * directory to another location outise the web server
      *
      */
-    public $resourcesPath = 'resources';
+    public $resourcesPath = 'coolcaptcha-resource';
     
     public $dst_dir = './';
 
