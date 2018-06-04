@@ -77,6 +77,8 @@ if ($handle) {
 		$captcha->minWordLength = 6;
 		$captcha->maxWordLength = 6;
 		$captcha->dst_dir = $dst_dir;
+		$captcha->width = 180;
+		$captcha->height = 50;
 
 		// Option for create data samples
 		$captcha->fonts = array(
