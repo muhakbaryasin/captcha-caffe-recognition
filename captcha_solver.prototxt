@@ -1,11 +1,11 @@
 power: 0.75
 snapshot_prefix: "temp/snapshots/modepakbudi"
-max_iter: 50000
+max_iter: 263290
 display: 500
 base_lr: 0.01
 snapshot: 5000
 momentum: 0.9
-solver_mode: "GPU"
+solver_mode: GPU
 net: "network_captchas_with_3_convolutional_layers_train.prototxt"
 weight_decay: 0.0005
 lr_policy: "inv"

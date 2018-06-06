@@ -292,6 +292,6 @@ if __name__ == "__main__":
 	caffe_config["snapshot"] = 5000	
 	caffe_config["snapshot_prefix"] = '"temp/snapshots/modepakbudi"'
 	# solver mode: CPU or GPU
-	caffe_config["solver_mode"] = '"GPU"'
+	caffe_config["solver_mode"] = 'GPU'
 	
 	main()
