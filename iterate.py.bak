@@ -8,8 +8,6 @@ import os
 import caffe
 import numpy as np
 from math import ceil
-from classify import *
-from time import sleep
 
 np.set_printoptions(threshold=np.nan)
 import logging
@@ -21,9 +19,9 @@ logger.addHandler(handler)
 
 os.environ['GLOG_minloglevel'] = '2'
 
-def modePakBudiCaptext(total_num_text=1000):
+def modePakBudiCaptext(total_num_text=10000):
 	total_num_text = float(total_num_text)
-	alphabet = "abcdefghijklmopqrstuvwxyz"
+	alphabet = "abcdefghijklmnopqrstuvwxyz"
 	captext_list = []
 	captext_len = 6 # len of captcha text
 	
@@ -133,14 +131,31 @@ def getLastSnapshot():
 			
 			return last_snapshot
 
-#def classifyImage(input_image, network, caffe_model):
-#	classifier = caffe.Classifier(network, caffe_model, mean=None)
-#	input_images = [input_image]
-#	
-#	prediction = classifier.predict(input_images, oversample=False)
-#	return prediction
+def classifyImage(input_image, network, caffe_model):
+	classifier = caffe.Classifier(network, caffe_model, mean=None)
+	input_images = [input_image]
+	
+	prediction = classifier.predict(input_images, oversample=False)
+	return prediction
+
+# This function is the inverse function of convertCharacterToClass
+def convertClassToCharacter(predictedClass):
+	if predictedClass < 10:
+		predictedCharacter = chr(predictedClass+48)
+		#print 'Predicted digit:', predictedCharacter
+	elif predictedClass <= 36:
+		predictedCharacter = chr(predictedClass+55)
+		#print "Predicted big letter", predictedCharacter
+	else:
+		predictedCharacter = chr(predictedClass+60)
+		#print "Predicted small letter", predictedCharacter
+	return predictedCharacter
+	
 
 def main():
+	"""old_stdout = sys.stdout
+	log_file = open("message.log","w")
+	sys.stdout = log_file"""	
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " clean up first")
 	resetCaptexList()	
 	cleanUpLastTrainDir()
@@ -162,7 +177,7 @@ def main():
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " init captext list")
 	createNewCaptextList()
 	
-	while iter_num < 10 and all_correct_times < 2:
+	while iter_num < 3 and all_correct_times < 2:
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " iteration number {}".format(iter_num))
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
 		
@@ -181,62 +196,33 @@ def main():
 			
 			correct = 0
 			total_images_test = 0
-			
-			list_of_test_task = {}
-			list_of_files = os.listdir(test_files_dir)
-			total_images_test = len(list_of_files)
-			
-			init_task = 4 if total_images_test > 4 else total_images_test
-			list_of_correct = {}
-			queue_no = 1
-			
-			# load init 10 task
-			for idx in xrange(init_task):
-				each_file = list_of_files.pop(0)
+		
+			for each_file in os.listdir(test_files_dir):
 				image_file_path = test_files_dir + each_file
 				correct_string = os.path.splitext(each_file)[0]
-				list_of_test_task[idx] = classifyImage.delay(correct_string, image_file_path, "network_captchas_with_3_convolutional_layers.prototxt", snapshots_dir+last_snapshot['caffemodel'])
-				queue_no += 1
+				input_image = caffe.io.load_image(image_file_path, color=False)
+				prediction = classifyImage(input_image, "network_captchas_with_3_convolutional_layers.prototxt", snapshots_dir+last_snapshot['caffemodel'])
 				
-			#iter_ = 0
-			while True:
-				all_ready = True
-				list_of_prediction = []
+				predictedString = ""
+				numberOfDigits = 6
+				classesPerDigit = 63
 				
-				for idx in xrange(init_task):
-					if list_of_test_task[idx].ready():
-						result = list_of_test_task[idx].get()
-						
-						if result[0]:
-							#print("{} -> {} == {} benar".format(idx, result[1], result[2]))
-							list_of_correct[ str(result[1]) ] = 0
-							# migrateTestFilesToRecognized(return_string)
-						else: 
-							# print("{} -> {} != {} salah".format(idx, result[1], result[2]))
-							pass
-						
-						if queue_no <= total_images_test:
-							each_file = list_of_files.pop(0)
-							image_file_path = test_files_dir + each_file
-							correct_string = os.path.splitext(each_file)[0]
-							list_of_test_task[idx] = classifyImage.delay(correct_string, image_file_path, "network_captchas_with_3_convolutional_layers.prototxt", snapshots_dir+last_snapshot['caffemodel'])
-							queue_no += 1
-							all_ready = False
-						
-					else:
-						all_ready = False
+				for x in xrange(0, numberOfDigits):
+					predictedChar = prediction[0][63*x:63*(x+1)]
+					predictedChar = predictedChar * sum(predictedChar) ** -1
+					predictedClass = predictedChar.argmax()
+					predictedCharacter = convertClassToCharacter(predictedClass)
+					predictedString+=predictedCharacter
 				
-				if all_ready:
-					print("masuk sini")
-					break
+				if predictedString == correct_string:
+					# anggap bagian ini berarti dy udah bisa baca
+					logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " correct on " + str(correct_string) + ". Move the file to recognized-images dir")
+					migrateTestFilesToRecognized(each_file)
+					correct += 1
+					pass
 				
-				#iter_ += 1
-				sleep(0.7)
-				
-			#print("==========")
-			#print(iter_)
+				total_images_test += 1
 			
-			correct = len(list_of_correct)
 			if correct == total_images_test:
 				logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " wow all correct. 100%")
 				all_correct_times += 1
@@ -272,6 +258,9 @@ def main():
 			call(["caffe", "train", "--solver="+caffe_config_file, "--snapshot="+snapshots_dir+last_snapshot['solverstate'] ])
 		
 		iter_num += 1
+	
+	#sys.stdout = old_stdout
+	#log_file.close()
 		
 		
 	

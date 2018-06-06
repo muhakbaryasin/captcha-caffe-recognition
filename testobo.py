@@ -156,10 +156,10 @@ def main():
 	"""old_stdout = sys.stdout
 	log_file = open("message.log","w")
 	sys.stdout = log_file"""	
-	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " clean up first")
-	resetCaptexList()	
-	cleanUpLastTrainDir()
-	cleanUpLastTestDir()
+	#logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " clean up first")
+	#resetCaptexList()	
+	#cleanUpLastTrainDir()
+	#cleanUpLastTestDir()
 	
 	# correct guest percentage
 	correct_percentage = 0.0
@@ -175,90 +175,62 @@ def main():
 	
 	# init list dataset train
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " init captext list")
-	createNewCaptextList()
+	#createNewCaptextList()
 	
-	while iter_num < 3 and all_correct_times < 2:
-		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " iteration number {}".format(iter_num))
-		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
+	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " iteration number {}".format(iter_num))
+	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
+	
+	last_snapshot = getLastSnapshot()
+	
+	if last_snapshot is None:
+		print("gak ngapa2in")
+		return 
+	else:
+		caffe_config["max_iter"] = int(last_snapshot['iteration'])
 		
-		last_snapshot = getLastSnapshot()
+		# test
+		# create test images
+		#logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " create TEST image set based on captext list")
+		#call(["php-cgi", "captcha.php", "dest-directory="+test_files_dir, "captext-list="+captext_list_file])
 		
-		if last_snapshot is None:
-			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " create TRAIN image set based on captext list")
-			call(["php-cgi", "captcha.php", "dest-directory="+train_files_dir, "captext-list="+captext_list_file])
-		else:
-			caffe_config["max_iter"] = int(last_snapshot['iteration'])
+		correct = 0
+		total_images_test = 0
+	
+		for each_file in os.listdir(test_files_dir):
+			image_file_path = test_files_dir + each_file
+			correct_string = os.path.splitext(each_file)[0]
+			input_image = caffe.io.load_image(image_file_path, color=False)
+			prediction = classifyImage(input_image, "network_captchas_with_3_convolutional_layers.prototxt", snapshots_dir+last_snapshot['caffemodel'])
 			
-			# test
-			# create test images
-			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " create TEST image set based on captext list")
-			call(["php-cgi", "captcha.php", "dest-directory="+test_files_dir, "captext-list="+captext_list_file])
+			predictedString = ""
+			numberOfDigits = 6
+			classesPerDigit = 63
 			
-			correct = 0
-			total_images_test = 0
+			for x in xrange(0, numberOfDigits):
+				predictedChar = prediction[0][63*x:63*(x+1)]
+				predictedChar = predictedChar * sum(predictedChar) ** -1
+				predictedClass = predictedChar.argmax()
+				predictedCharacter = convertClassToCharacter(predictedClass)
+				predictedString+=predictedCharacter
 			
-			list_of_test_task = []
-		
-			for each_file in os.listdir(test_files_dir):
-				image_file_path = test_files_dir + each_file
-				correct_string = os.path.splitext(each_file)[0]				
-				classifyImage(correct_string, image_file_path, "network_captchas_with_3_convolutional_layers.prototxt", snapshots_dir+last_snapshot['caffemodel'])
-				list_of_test_task.append(classifyImage.delay(correct_string, input_image, "network_captchas_with_3_convolutional_layers.prototxt", snapshots_dir+last_snapshot['caffemodel']))
+			if predictedString == correct_string:
+				# anggap bagian ini berarti dy udah bisa baca
+				logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " correct on " + str(correct_string) + ". Move the file to recognized-images dir")
+				# migrateTestFilesToRecognized(each_file)
+				correct += 1
+				pass
 			
-			total_images_test = len(list_of_test_task)
-			
-			while True:
-				all_ready = True
-				list_of_prediction = []
-				
-				for idx, each_task in enumerate(list_of_test_task):
-					if each_task.ready():
-						pdb.set_trace()
-						return_string = list_of_test_task.pop(idx).get()
-						if return_string is not None:
-							correct +=1
-							migrateTestFilesToRecognized(return_string)
-					else:
-						all_ready = False
-				
-				if all_ready:
-					break
-			
-			if correct == total_images_test:
-				logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " wow all correct. 100%")
-				all_correct_times += 1
-				createNewCaptextList()
-				correct_percentage = 100.0
-			else :
-				correct_percentage = correct / total_images_test * 100
-				logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " booo!!. only correct: " + str(correct) + " images of total: " + str(total_images_test) )
-				convertTestDirToTrainDir()		
-		break
-		#caffe_config["max_iter"] += 50000 * (100.0 - correct_percentage)
-		caffe_config["max_iter"] += len([name for name in os.listdir(train_files_dir) if os.path.isfile(os.path.join(train_files_dir, name))]) * 5
+			total_images_test += 1
 		
-		# train
-		# create train list filename and label
-		call(["bash", "create-train-list.sh", train_files_dir, train_list_file])
-		
-		# reset images db
-		call(["rm", "-rf", train_db_dir])
-		
-		# create new images db
-		call(["convert_imageset", "--backend=leveldb","--gray", "--resize_height=0", "--resize_width=0", "--shuffle=true", train_files_dir, train_list_file, train_db_dir])
-		cleanUpLastTrainDir()
-		
-		configNewNetCaffe()		
-		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " caffe TRAIN")
-		# caffe train
-		if last_snapshot is None:
-			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " no snapshot")
-			call(["caffe", "train", "--solver="+caffe_config_file])
-		else:
-			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " use snapshot " + snapshots_dir+last_snapshot['solverstate'])
-			call(["caffe", "train", "--solver="+caffe_config_file, "--snapshot="+snapshots_dir+last_snapshot['solverstate'] ])
-		
-		iter_num += 1
+		if correct == total_images_test:
+			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " wow all correct. 100%")
+			all_correct_times += 1
+			#createNewCaptextList()
+			correct_percentage = 100.0
+		else :
+			correct_percentage = correct / total_images_test * 100
+			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " booo!!. only correct: " + str(correct) + " images of total: " + str(total_images_test) )
+			#convertTestDirToTrainDir()
 	
 	#sys.stdout = old_stdout
 	#log_file.close()
