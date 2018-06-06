@@ -21,9 +21,9 @@ logger.addHandler(handler)
 
 os.environ['GLOG_minloglevel'] = '2'
 
-def modePakBudiCaptext(total_num_text=1000):
+def modePakBudiCaptext(total_num_text=10000):
 	total_num_text = float(total_num_text)
-	alphabet = "abcdefghijklmopqrstuvwxyz"
+	alphabet = "abcdefghijklmnopqrstuvwxyz"
 	captext_list = []
 	captext_len = 6 # len of captcha text
 	
