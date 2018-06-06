@@ -210,7 +210,7 @@ def main():
 						if result[0]:
 							#print("{} -> {} == {} benar".format(idx, result[1], result[2]))
 							list_of_correct[ str(result[1]) ] = 0
-							# migrateTestFilesToRecognized(return_string)
+							migrateTestFilesToRecognized(result[1])
 						else: 
 							# print("{} -> {} != {} salah".format(idx, result[1], result[2]))
 							pass
