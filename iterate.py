@@ -60,10 +60,15 @@ def modePakBudiCaptext(total_num_text=10000):
 
 	return captext_list
 
+def subsubcall(list_):
+	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ".join(list_))
+	call(list_)
+
 def createNewCaptextList():
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " create new captext_list")
 	captext_list = modePakBudiCaptext()
-	call(["rm", "-rf", captext_list_file])
+	subcall(["rm", "-rf", captext_list_file])
+	subcall(["touch", captext_list_file])
 	
 	# append captext_list to captext_list_file
 	for each_text in captext_list:
@@ -75,15 +80,15 @@ def createNewCaptextList():
 
 def resetCaptexList():
 	# reset list text captcha
-	call(["rm", "-rf", captext_list_file])
-	call(["touch", captext_list_file])
-	call(["rm", "-rf", train_list_file])
-	call(["touch", train_list_file])
+	subcall(["rm", "-rf", captext_list_file])
+	subcall(["touch", captext_list_file])
+	subcall(["rm", "-rf", train_list_file])
+	subcall(["touch", train_list_file])
 
 def cleanUpDir(dir_path):
-	call(["rm", "-rf", dir_path])
-	call(["mkdir", dir_path])
-	#call(["touch", dir_path+"supayakeadd"])
+	subcall(["rm", "-rf", dir_path])
+	subcall(["mkdir", dir_path])
+	#subcall(["touch", dir_path+"supayakeadd"])
 
 def cleanUpLastTrainDir():
 	# reset directory train image captcha
@@ -96,24 +101,28 @@ def cleanUpLastTestDir():
 def cleanUpRecognizedDir():
 	cleanUpDir(recognized_files_dir)
 
-def migrateTestFilesToRecognized(filename):
-	call(["mv", test_files_dir+filename, recognized_files_dir+filename])
+def migrateTestFilesToRecognized(filename, post_fix=None):
+	if post_fix is not None:
+		post_fix = "__"+str(post_fix)
+	
+	call(["mv", test_files_dir+filename, recognized_files_dir+filename+post_fix])
 
 def convertTestDirToTrainDir():
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " Make TEST image set become TRAIN image set")
-	call(["rm", "-rf", train_files_dir])
-	call(["mv", test_files_dir, train_files_dir])
-	call(["mkdir", test_files_dir])	
+	subcall(["rm", "-rf", train_files_dir])
+	subcall(["mv", test_files_dir, train_files_dir])
+	subcall(["mkdir", test_files_dir])	
 
 def configNewNetCaffe():
-	call(["rm", "-rf", caffe_config_file])
+	subcall(["rm", "-rf", caffe_config_file])
+	subcall(["touch", caffe_config_file])
 	
 	with open(caffe_config_file, "a") as myfile:
 		for each_idx in caffe_config:
 			myfile.write("{}: {}\n".format(each_idx, caffe_config[each_idx]))
 	
 	#for idx in caffe_config:		
-	#	call("echo {}: {} >> {}".format(each_idx, caffe_config[each_idx], caffe_config_file), shell="True")
+	#	subcall("echo {}: {} >> {}".format(each_idx, caffe_config[each_idx], caffe_config_file), shell="True")
 	
 
 def getLastSnapshot():
@@ -159,10 +168,11 @@ def main():
 	all_correct_times = 0
 	
 	# init list dataset train
-	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " init captext list")
+	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " init")
 	createNewCaptextList()
 	
 	while iter_num < 10 and all_correct_times < 2:
+		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " iteration number {}".format(iter_num))
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
 		
@@ -170,14 +180,21 @@ def main():
 		
 		if last_snapshot is None:
 			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " create TRAIN image set based on captext list")
-			call(["php-cgi", "captcha.php", "dest-directory="+train_files_dir, "captext-list="+captext_list_file])
+			subcall(["php-cgi", "captcha.php", "dest-directory="+train_files_dir, "captext-list="+captext_list_file])
+			
+			# backup
+			subcall(["cp", "-r", train_files_dir, train_files_dir[0][-1] + "__bak_" + str(caffe_config["max_iter"])])
 		else:
+			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " TEST pretrained snapshot " + snapshots_dir+last_snapshot['solverstate'])
 			caffe_config["max_iter"] = int(last_snapshot['iteration'])
 			
 			# test
 			# create test images
 			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " create TEST image set based on captext list")
-			call(["php-cgi", "captcha.php", "dest-directory="+test_files_dir, "captext-list="+captext_list_file])
+			subcall(["php-cgi", "captcha.php", "dest-directory="+test_files_dir, "captext-list="+captext_list_file])
+			
+			#bakcup
+			subcall(["cp", "-r", test_files_dir, test_files_dir[0][-1] + "__bak_" + str(caffe_config["max_iter"])])
 			
 			correct = 0
 			total_images_test = 0
@@ -210,7 +227,7 @@ def main():
 						if result[0]:
 							#print("{} -> {} == {} benar".format(idx, result[1], result[2]))
 							list_of_correct[ str(result[1]) ] = 0
-							migrateTestFilesToRecognized(result[1])
+							migrateTestFilesToRecognized(result[1], caffe_config["max_iter"])
 						else: 
 							# print("{} -> {} != {} salah".format(idx, result[1], result[2]))
 							pass
@@ -227,7 +244,6 @@ def main():
 						all_ready = False
 				
 				if all_ready:
-					print("masuk sini")
 					break
 				
 				#iter_ += 1
@@ -245,20 +261,24 @@ def main():
 			else :
 				correct_percentage = correct / total_images_test * 100
 				logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " booo!!. only correct: " + str(correct) + " images of total: " + str(total_images_test) )
-				convertTestDirToTrainDir()		
+				convertTestDirToTrainDir()
+				
+				#bakcup
+				subcall(["cp", "-r", train_files_dir, train_files_dir[0][-1] + "__bak_" + str(caffe_config["max_iter"])])
 		
 		#caffe_config["max_iter"] += 50000 * (100.0 - correct_percentage)
 		caffe_config["max_iter"] += len([name for name in os.listdir(train_files_dir) if os.path.isfile(os.path.join(train_files_dir, name))]) * 5
+		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " set new max train iter to ->" + str(caffe_config["max_iter"]) )
 		
 		# train
 		# create train list filename and label
-		call(["bash", "create-train-list.sh", train_files_dir, train_list_file])
+		subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])
 		
 		# reset images db
-		call(["rm", "-rf", train_db_dir])
+		subcall(["rm", "-rf", train_db_dir])
 		
 		# create new images db
-		call(["convert_imageset", "--backend=leveldb","--gray", "--resize_height=0", "--resize_width=0", "--shuffle=true", train_files_dir, train_list_file, train_db_dir])
+		subcall(["convert_imageset", "--backend=leveldb","--gray", "--resize_height=0", "--resize_width=0", "--shuffle=true", train_files_dir, train_list_file, train_db_dir])
 		cleanUpLastTrainDir()
 		
 		configNewNetCaffe()		
@@ -266,10 +286,10 @@ def main():
 		# caffe train
 		if last_snapshot is None:
 			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " no snapshot")
-			call(["caffe", "train", "--solver="+caffe_config_file])
+			subcall(["caffe", "train", "--solver="+caffe_config_file])
 		else:
-			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " use snapshot " + snapshots_dir+last_snapshot['solverstate'])
-			call(["caffe", "train", "--solver="+caffe_config_file, "--snapshot="+snapshots_dir+last_snapshot['solverstate'] ])
+			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " continue TRAIN snapshot " + snapshots_dir+last_snapshot['solverstate'])
+			subcall(["caffe", "train", "--solver="+caffe_config_file, "--snapshot="+snapshots_dir+last_snapshot['solverstate'] ])
 		
 		iter_num += 1
 		
@@ -300,7 +320,7 @@ if __name__ == "__main__":
 	# The maximum number of iterations
 	caffe_config["max_iter"] = 50000	
 	# snapshot intermediate results
-	caffe_config["snapshot"] = 5000	
+	caffe_config["snapshot"] = 10000	
 	caffe_config["snapshot_prefix"] = '"temp/snapshots/modepakbudi"'
 	# solver mode: CPU or GPU
 	caffe_config["solver_mode"] = 'GPU'
