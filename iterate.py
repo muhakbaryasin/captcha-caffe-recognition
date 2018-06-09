@@ -60,7 +60,7 @@ def modePakBudiCaptext(total_num_text=10000):
 
 	return captext_list
 
-def subsubcall(list_):
+def subcall(list_):
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ".join(list_))
 	call(list_)
 
