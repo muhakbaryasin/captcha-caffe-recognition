@@ -183,7 +183,7 @@ def main():
 			subcall(["php-cgi", "captcha.php", "dest-directory="+train_files_dir, "captext-list="+captext_list_file])
 			
 			# backup
-			subcall(["cp", "-r", train_files_dir, train_files_dir[0][-1] + "__bak_" + str(caffe_config["max_iter"])])
+			subcall(["cp", "-r", train_files_dir, train_files_dir[0:-1] + "__bak_" + str(caffe_config["max_iter"])])
 		else:
 			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " TEST pretrained snapshot " + snapshots_dir+last_snapshot['solverstate'])
 			caffe_config["max_iter"] = int(last_snapshot['iteration'])
@@ -194,7 +194,7 @@ def main():
 			subcall(["php-cgi", "captcha.php", "dest-directory="+test_files_dir, "captext-list="+captext_list_file])
 			
 			#bakcup
-			subcall(["cp", "-r", test_files_dir, test_files_dir[0][-1] + "__bak_" + str(caffe_config["max_iter"])])
+			subcall(["cp", "-r", test_files_dir, test_files_dir[0:-1] + "__bak_" + str(caffe_config["max_iter"])])
 			
 			correct = 0
 			total_images_test = 0
@@ -264,7 +264,7 @@ def main():
 				convertTestDirToTrainDir()
 				
 				#bakcup
-				subcall(["cp", "-r", train_files_dir, train_files_dir[0][-1] + "__bak_" + str(caffe_config["max_iter"])])
+				subcall(["cp", "-r", train_files_dir, train_files_dir[0:-1] + "__bak_" + str(caffe_config["max_iter"])])
 		
 		#caffe_config["max_iter"] += 50000 * (100.0 - correct_percentage)
 		caffe_config["max_iter"] += len([name for name in os.listdir(train_files_dir) if os.path.isfile(os.path.join(train_files_dir, name))]) * 5
