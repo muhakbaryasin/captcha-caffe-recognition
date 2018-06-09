@@ -61,7 +61,7 @@ def modePakBudiCaptext(total_num_text=10000):
 	return captext_list
 
 def subcall(list_):
-	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ".join(list_))
+	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " " + (" ".join(list_)))
 	call(list_)
 
 def createNewCaptextList():
@@ -227,7 +227,7 @@ def main():
 						if result[0]:
 							#print("{} -> {} == {} benar".format(idx, result[1], result[2]))
 							list_of_correct[ str(result[1]) ] = 0
-							migrateTestFilesToRecognized(result[1], caffe_config["max_iter"])
+							migrateTestFilesToRecognized(result[1], post_fix=caffe_config["max_iter"])
 						else: 
 							# print("{} -> {} != {} salah".format(idx, result[1], result[2]))
 							pass
