@@ -1,0 +1,222 @@
+2018-06-10 00:37:43 clean up first
+2018-06-10 00:37:43 rm -rf temp/captcha-text-list.txt
+2018-06-10 00:37:43 touch temp/captcha-text-list.txt
+2018-06-10 00:37:43 rm -rf temp/train-list.txt
+2018-06-10 00:37:43 touch temp/train-list.txt
+2018-06-10 00:37:43 rm -rf temp/train-files/
+2018-06-10 00:37:43 mkdir temp/train-files/
+2018-06-10 00:37:43 rm -rf temp/test-files/
+2018-06-10 00:37:43 mkdir temp/test-files/
+2018-06-10 00:37:43 init
+2018-06-10 00:37:43 create new captext_list
+2018-06-10 00:37:43 rm -rf temp/captcha-text-list.txt
+2018-06-10 00:37:43 touch temp/captcha-text-list.txt
+2018-06-10 00:38:53 ==========================================
+2018-06-10 00:38:53 iteration number 1
+2018-06-10 00:38:53 ==========================================
+2018-06-10 00:38:53 create TRAIN image set based on captext list
+2018-06-10 00:38:53 php-cgi captcha.php dest-directory=temp/train-files/ captext-list=temp/captcha-text-list.txt
+2018-06-10 00:39:21 cp -r temp/train-files/ temp/train-files__bak_0
+2018-06-10 00:39:22 set new max train iter to ->50050
+2018-06-10 00:39:22 bash create-train-list.sh temp/train-files/ temp/train-list.txt
+2018-06-10 00:40:10 rm -rf temp/train.db
+2018-06-10 00:40:10 convert_imageset --backend=leveldb --gray --resize_height=0 --resize_width=0 --shuffle=true temp/train-files/ temp/train-list.txt temp/train.db
+2018-06-10 00:40:30 rm -rf temp/train-files/
+2018-06-10 00:40:30 mkdir temp/train-files/
+2018-06-10 00:40:30 rm -rf captcha_solver.prototxt
+2018-06-10 00:40:30 touch captcha_solver.prototxt
+2018-06-10 00:40:30 caffe TRAIN
+2018-06-10 00:40:30 no snapshot
+2018-06-10 00:40:30 caffe train --solver=captcha_solver.prototxt
+2018-06-10 01:54:33 ==========================================
+2018-06-10 01:54:33 iteration number 2
+2018-06-10 01:54:33 ==========================================
+2018-06-10 01:54:33 TEST pretrained snapshot temp/snapshots/modepakbudi_iter_50050.solverstate
+2018-06-10 01:54:33 create TEST image set based on captext list
+2018-06-10 01:54:33 php-cgi captcha.php dest-directory=temp/test-files/ captext-list=temp/captcha-text-list.txt
+2018-06-10 01:55:04 cp -r temp/test-files/ temp/test-files__bak_50050
+2018-06-10 02:53:33 booo!!. only correct: 261 images of total: 10010
+2018-06-10 02:53:33 Make TEST image set become TRAIN image set
+2018-06-10 02:53:33 rm -rf temp/train-files/
+2018-06-10 02:53:33 mv temp/test-files/ temp/train-files/
+2018-06-10 02:53:33 mkdir temp/test-files/
+2018-06-10 02:53:33 cp -r temp/train-files/ temp/train-files__bak_50050
+2018-06-10 02:53:33 set new max train iter to ->98795
+2018-06-10 02:53:33 bash create-train-list.sh temp/train-files/ temp/train-list.txt
+2018-06-10 02:54:28 rm -rf temp/train.db
+2018-06-10 02:54:28 convert_imageset --backend=leveldb --gray --resize_height=0 --resize_width=0 --shuffle=true temp/train-files/ temp/train-list.txt temp/train.db
+2018-06-10 02:54:58 rm -rf temp/train-files/
+2018-06-10 02:54:58 mkdir temp/train-files/
+2018-06-10 02:54:58 rm -rf captcha_solver.prototxt
+2018-06-10 02:54:58 touch captcha_solver.prototxt
+2018-06-10 02:54:58 caffe TRAIN
+2018-06-10 02:54:58 continue TRAIN snapshot temp/snapshots/modepakbudi_iter_50050.solverstate
+2018-06-10 02:54:58 caffe train --solver=captcha_solver.prototxt --snapshot=temp/snapshots/modepakbudi_iter_50050.solverstate
+2018-06-10 04:06:56 ==========================================
+2018-06-10 04:06:56 iteration number 3
+2018-06-10 04:06:56 ==========================================
+2018-06-10 04:06:56 TEST pretrained snapshot temp/snapshots/modepakbudi_iter_98795.solverstate
+2018-06-10 04:06:56 create TEST image set based on captext list
+2018-06-10 04:06:56 php-cgi captcha.php dest-directory=temp/test-files/ captext-list=temp/captcha-text-list.txt
+2018-06-10 04:07:26 cp -r temp/test-files/ temp/test-files__bak_98795
+2018-06-10 05:05:55 booo!!. only correct: 3221 images of total: 10010
+2018-06-10 05:05:55 Make TEST image set become TRAIN image set
+2018-06-10 05:05:55 rm -rf temp/train-files/
+2018-06-10 05:05:55 mv temp/test-files/ temp/train-files/
+2018-06-10 05:05:55 mkdir temp/test-files/
+2018-06-10 05:05:55 cp -r temp/train-files/ temp/train-files__bak_98795
+2018-06-10 05:05:55 set new max train iter to ->132740
+2018-06-10 05:05:55 bash create-train-list.sh temp/train-files/ temp/train-list.txt
+2018-06-10 05:06:32 rm -rf temp/train.db
+2018-06-10 05:06:32 convert_imageset --backend=leveldb --gray --resize_height=0 --resize_width=0 --shuffle=true temp/train-files/ temp/train-list.txt temp/train.db
+2018-06-10 05:06:58 rm -rf temp/train-files/
+2018-06-10 05:06:58 mkdir temp/train-files/
+2018-06-10 05:06:58 rm -rf captcha_solver.prototxt
+2018-06-10 05:06:58 touch captcha_solver.prototxt
+2018-06-10 05:06:58 caffe TRAIN
+2018-06-10 05:06:58 continue TRAIN snapshot temp/snapshots/modepakbudi_iter_98795.solverstate
+2018-06-10 05:06:58 caffe train --solver=captcha_solver.prototxt --snapshot=temp/snapshots/modepakbudi_iter_98795.solverstate
+2018-06-10 05:57:13 ==========================================
+2018-06-10 05:57:13 iteration number 4
+2018-06-10 05:57:13 ==========================================
+2018-06-10 05:57:13 TEST pretrained snapshot temp/snapshots/modepakbudi_iter_132740.solverstate
+2018-06-10 05:57:13 create TEST image set based on captext list
+2018-06-10 05:57:13 php-cgi captcha.php dest-directory=temp/test-files/ captext-list=temp/captcha-text-list.txt
+2018-06-10 05:57:47 cp -r temp/test-files/ temp/test-files__bak_132740
+2018-06-10 06:56:03 booo!!. only correct: 4190 images of total: 10010
+2018-06-10 06:56:03 Make TEST image set become TRAIN image set
+2018-06-10 06:56:03 rm -rf temp/train-files/
+2018-06-10 06:56:03 mv temp/test-files/ temp/train-files/
+2018-06-10 06:56:03 mkdir temp/test-files/
+2018-06-10 06:56:03 cp -r temp/train-files/ temp/train-files__bak_132740
+2018-06-10 06:56:03 set new max train iter to ->161840
+2018-06-10 06:56:03 bash create-train-list.sh temp/train-files/ temp/train-list.txt
+2018-06-10 06:56:36 rm -rf temp/train.db
+2018-06-10 06:56:37 convert_imageset --backend=leveldb --gray --resize_height=0 --resize_width=0 --shuffle=true temp/train-files/ temp/train-list.txt temp/train.db
+2018-06-10 06:57:08 rm -rf temp/train-files/
+2018-06-10 06:57:08 mkdir temp/train-files/
+2018-06-10 06:57:08 rm -rf captcha_solver.prototxt
+2018-06-10 06:57:08 touch captcha_solver.prototxt
+2018-06-10 06:57:08 caffe TRAIN
+2018-06-10 06:57:08 continue TRAIN snapshot temp/snapshots/modepakbudi_iter_132740.solverstate
+2018-06-10 06:57:08 caffe train --solver=captcha_solver.prototxt --snapshot=temp/snapshots/modepakbudi_iter_132740.solverstate
+2018-06-10 07:40:19 ==========================================
+2018-06-10 07:40:19 iteration number 5
+2018-06-10 07:40:19 ==========================================
+2018-06-10 07:40:19 TEST pretrained snapshot temp/snapshots/modepakbudi_iter_161840.solverstate
+2018-06-10 07:40:19 create TEST image set based on captext list
+2018-06-10 07:40:19 php-cgi captcha.php dest-directory=temp/test-files/ captext-list=temp/captcha-text-list.txt
+2018-06-10 07:40:51 cp -r temp/test-files/ temp/test-files__bak_161840
+2018-06-10 08:39:14 booo!!. only correct: 4941 images of total: 10010
+2018-06-10 08:39:14 Make TEST image set become TRAIN image set
+2018-06-10 08:39:14 rm -rf temp/train-files/
+2018-06-10 08:39:14 mv temp/test-files/ temp/train-files/
+2018-06-10 08:39:14 mkdir temp/test-files/
+2018-06-10 08:39:14 cp -r temp/train-files/ temp/train-files__bak_161840
+2018-06-10 08:39:14 set new max train iter to ->187185
+2018-06-10 08:39:14 bash create-train-list.sh temp/train-files/ temp/train-list.txt
+2018-06-10 08:39:43 rm -rf temp/train.db
+2018-06-10 08:39:43 convert_imageset --backend=leveldb --gray --resize_height=0 --resize_width=0 --shuffle=true temp/train-files/ temp/train-list.txt temp/train.db
+2018-06-10 08:40:16 rm -rf temp/train-files/
+2018-06-10 08:40:16 mkdir temp/train-files/
+2018-06-10 08:40:16 rm -rf captcha_solver.prototxt
+2018-06-10 08:40:16 touch captcha_solver.prototxt
+2018-06-10 08:40:16 caffe TRAIN
+2018-06-10 08:40:16 continue TRAIN snapshot temp/snapshots/modepakbudi_iter_161840.solverstate
+2018-06-10 08:40:16 caffe train --solver=captcha_solver.prototxt --snapshot=temp/snapshots/modepakbudi_iter_161840.solverstate
+2018-06-10 09:17:48 ==========================================
+2018-06-10 09:17:48 iteration number 6
+2018-06-10 09:17:48 ==========================================
+2018-06-10 09:17:49 TEST pretrained snapshot temp/snapshots/modepakbudi_iter_187185.solverstate
+2018-06-10 09:17:49 create TEST image set based on captext list
+2018-06-10 09:17:49 php-cgi captcha.php dest-directory=temp/test-files/ captext-list=temp/captcha-text-list.txt
+2018-06-10 09:18:21 cp -r temp/test-files/ temp/test-files__bak_187185
+2018-06-10 10:16:56 booo!!. only correct: 5208 images of total: 10010
+2018-06-10 10:16:56 Make TEST image set become TRAIN image set
+2018-06-10 10:16:56 rm -rf temp/train-files/
+2018-06-10 10:16:56 mv temp/test-files/ temp/train-files/
+2018-06-10 10:16:56 mkdir temp/test-files/
+2018-06-10 10:16:56 cp -r temp/train-files/ temp/train-files__bak_187185
+2018-06-10 10:16:56 set new max train iter to ->211195
+2018-06-10 10:16:56 bash create-train-list.sh temp/train-files/ temp/train-list.txt
+2018-06-10 10:17:24 rm -rf temp/train.db
+2018-06-10 10:17:24 convert_imageset --backend=leveldb --gray --resize_height=0 --resize_width=0 --shuffle=true temp/train-files/ temp/train-list.txt temp/train.db
+2018-06-10 10:18:03 rm -rf temp/train-files/
+2018-06-10 10:18:03 mkdir temp/train-files/
+2018-06-10 10:18:03 rm -rf captcha_solver.prototxt
+2018-06-10 10:18:03 touch captcha_solver.prototxt
+2018-06-10 10:18:03 caffe TRAIN
+2018-06-10 10:18:03 continue TRAIN snapshot temp/snapshots/modepakbudi_iter_187185.solverstate
+2018-06-10 10:18:03 caffe train --solver=captcha_solver.prototxt --snapshot=temp/snapshots/modepakbudi_iter_187185.solverstate
+2018-06-10 10:53:39 ==========================================
+2018-06-10 10:53:39 iteration number 7
+2018-06-10 10:53:39 ==========================================
+2018-06-10 10:53:39 TEST pretrained snapshot temp/snapshots/modepakbudi_iter_211195.solverstate
+2018-06-10 10:53:39 create TEST image set based on captext list
+2018-06-10 10:53:39 php-cgi captcha.php dest-directory=temp/test-files/ captext-list=temp/captcha-text-list.txt
+2018-06-10 10:54:11 cp -r temp/test-files/ temp/test-files__bak_211195
+2018-06-10 11:53:20 booo!!. only correct: 5641 images of total: 10010
+2018-06-10 11:53:20 Make TEST image set become TRAIN image set
+2018-06-10 11:53:20 rm -rf temp/train-files/
+2018-06-10 11:53:20 mv temp/test-files/ temp/train-files/
+2018-06-10 11:53:20 mkdir temp/test-files/
+2018-06-10 11:53:20 cp -r temp/train-files/ temp/train-files__bak_211195
+2018-06-10 11:53:21 set new max train iter to ->233040
+2018-06-10 11:53:21 bash create-train-list.sh temp/train-files/ temp/train-list.txt
+2018-06-10 11:53:45 rm -rf temp/train.db
+2018-06-10 11:53:45 convert_imageset --backend=leveldb --gray --resize_height=0 --resize_width=0 --shuffle=true temp/train-files/ temp/train-list.txt temp/train.db
+2018-06-10 11:54:39 rm -rf temp/train-files/
+2018-06-10 11:54:39 mkdir temp/train-files/
+2018-06-10 11:54:39 rm -rf captcha_solver.prototxt
+2018-06-10 11:54:39 touch captcha_solver.prototxt
+2018-06-10 11:54:39 caffe TRAIN
+2018-06-10 11:54:39 continue TRAIN snapshot temp/snapshots/modepakbudi_iter_211195.solverstate
+2018-06-10 11:54:39 caffe train --solver=captcha_solver.prototxt --snapshot=temp/snapshots/modepakbudi_iter_211195.solverstate
+2018-06-10 12:27:02 ==========================================
+2018-06-10 12:27:02 iteration number 8
+2018-06-10 12:27:02 ==========================================
+2018-06-10 12:27:02 TEST pretrained snapshot temp/snapshots/modepakbudi_iter_233040.solverstate
+2018-06-10 12:27:02 create TEST image set based on captext list
+2018-06-10 12:27:02 php-cgi captcha.php dest-directory=temp/test-files/ captext-list=temp/captcha-text-list.txt
+2018-06-10 12:27:34 cp -r temp/test-files/ temp/test-files__bak_233040
+2018-06-10 13:25:53 booo!!. only correct: 6065 images of total: 10010
+2018-06-10 13:25:53 Make TEST image set become TRAIN image set
+2018-06-10 13:25:53 rm -rf temp/train-files/
+2018-06-10 13:25:53 mv temp/test-files/ temp/train-files/
+2018-06-10 13:25:53 mkdir temp/test-files/
+2018-06-10 13:25:54 cp -r temp/train-files/ temp/train-files__bak_233040
+2018-06-10 13:25:54 set new max train iter to ->252765
+2018-06-10 13:25:54 bash create-train-list.sh temp/train-files/ temp/train-list.txt
+2018-06-10 13:26:16 rm -rf temp/train.db
+2018-06-10 13:26:16 convert_imageset --backend=leveldb --gray --resize_height=0 --resize_width=0 --shuffle=true temp/train-files/ temp/train-list.txt temp/train.db
+2018-06-10 13:26:57 rm -rf temp/train-files/
+2018-06-10 13:26:57 mkdir temp/train-files/
+2018-06-10 13:26:57 rm -rf captcha_solver.prototxt
+2018-06-10 13:26:57 touch captcha_solver.prototxt
+2018-06-10 13:26:57 caffe TRAIN
+2018-06-10 13:26:57 continue TRAIN snapshot temp/snapshots/modepakbudi_iter_233040.solverstate
+2018-06-10 13:26:57 caffe train --solver=captcha_solver.prototxt --snapshot=temp/snapshots/modepakbudi_iter_233040.solverstate
+2018-06-10 13:56:19 ==========================================
+2018-06-10 13:56:19 iteration number 9
+2018-06-10 13:56:19 ==========================================
+2018-06-10 13:56:19 TEST pretrained snapshot temp/snapshots/modepakbudi_iter_252765.solverstate
+2018-06-10 13:56:19 create TEST image set based on captext list
+2018-06-10 13:56:19 php-cgi captcha.php dest-directory=temp/test-files/ captext-list=temp/captcha-text-list.txt
+2018-06-10 13:56:51 cp -r temp/test-files/ temp/test-files__bak_252765
+2018-06-10 14:55:13 booo!!. only correct: 5897 images of total: 10010
+2018-06-10 14:55:13 Make TEST image set become TRAIN image set
+2018-06-10 14:55:13 rm -rf temp/train-files/
+2018-06-10 14:55:13 mv temp/test-files/ temp/train-files/
+2018-06-10 14:55:13 mkdir temp/test-files/
+2018-06-10 14:55:13 cp -r temp/train-files/ temp/train-files__bak_252765
+2018-06-10 14:55:13 set new max train iter to ->273330
+2018-06-10 14:55:13 bash create-train-list.sh temp/train-files/ temp/train-list.txt
+2018-06-10 14:55:37 rm -rf temp/train.db
+2018-06-10 14:55:37 convert_imageset --backend=leveldb --gray --resize_height=0 --resize_width=0 --shuffle=true temp/train-files/ temp/train-list.txt temp/train.db
+2018-06-10 14:56:29 rm -rf temp/train-files/
+2018-06-10 14:56:29 mkdir temp/train-files/
+2018-06-10 14:56:29 rm -rf captcha_solver.prototxt
+2018-06-10 14:56:29 touch captcha_solver.prototxt
+2018-06-10 14:56:29 caffe TRAIN
+2018-06-10 14:56:29 continue TRAIN snapshot temp/snapshots/modepakbudi_iter_252765.solverstate
+2018-06-10 14:56:29 caffe train --solver=captcha_solver.prototxt --snapshot=temp/snapshots/modepakbudi_iter_252765.solverstate
