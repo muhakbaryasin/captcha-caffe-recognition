@@ -78,10 +78,8 @@ def createNewCaptextList():
 	#	for each_text in captext_list:
 	#		myfile.write(each_text)
 
-def resetCaptexList():
+def resetTrainList():
 	# reset list text captcha
-	subcall(["rm", "-rf", captext_list_file])
-	subcall(["touch", captext_list_file])
 	subcall(["rm", "-rf", train_list_file])
 	subcall(["touch", train_list_file])
 
@@ -151,9 +149,11 @@ def getLastSnapshot():
 
 def main():
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " clean up first")
-	resetCaptexList()	
+	resetTrainList()
 	cleanUpLastTrainDir()
 	cleanUpLastTestDir()
+	subcall(["rm", "-rf", result_csv])
+	subcall(["touch", result_csv])
 	
 	# correct guest percentage
 	correct_percentage = 0.0
@@ -171,7 +171,7 @@ def main():
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " init")
 	createNewCaptextList()
 	
-	while iter_num < 20 and all_correct_times < 2:
+	while iter_num < 3 and all_correct_times < 2:
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " iteration number {}".format(iter_num))
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
@@ -207,7 +207,7 @@ def main():
 			list_of_correct = {}
 			queue_no = 1
 			
-			# load init 10 task
+			# load init task
 			for idx in xrange(init_task):
 				each_file = list_of_files.pop(0)
 				image_file_path = test_files_dir + each_file
@@ -221,6 +221,7 @@ def main():
 				list_of_prediction = []
 				
 				for idx in xrange(init_task):
+					# when task's result is ready
 					if list_of_test_task[idx].ready():
 						result = list_of_test_task[idx].get()
 						
@@ -232,6 +233,9 @@ def main():
 							# print("{} -> {} != {} salah".format(idx, result[1], result[2]))
 							pass
 						
+						call("echo {},{},{},{} >> {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(result[0]), result[1], caffe_config["max_iter"], result_csv), shell="True")
+						
+						# assign new queue task
 						if queue_no <= total_images_test:
 							each_file = list_of_files.pop(0)
 							image_file_path = test_files_dir + each_file
@@ -256,6 +260,8 @@ def main():
 			if correct == total_images_test:
 				logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " wow all correct. 100%")
 				all_correct_times += 1
+				# backup last captext list
+				subcall(["cp", "-r", captext_list_file, captext_list_file + "__bak_" + str(caffe_config["max_iter"])])
 				createNewCaptextList()
 				correct_percentage = 100.0
 			else :
@@ -263,7 +269,7 @@ def main():
 				logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " booo!!. only correct: " + str(correct) + " images of total: " + str(total_images_test) )
 				convertTestDirToTrainDir()
 				
-				#bakcup
+				# bakcup train files
 				subcall(["cp", "-r", train_files_dir, train_files_dir[0:-1] + "__bak_" + str(caffe_config["max_iter"])])
 		
 		#caffe_config["max_iter"] += 50000 * (100.0 - correct_percentage)
@@ -272,6 +278,7 @@ def main():
 		
 		# train
 		# create train list filename and label
+		# resetTrainList()
 		subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])
 		
 		# reset images db
@@ -304,6 +311,7 @@ if __name__ == "__main__":
 	train_db_dir = "temp/train.db"
 	snapshots_dir = "temp/snapshots/"
 	caffe_config_file = "captcha_solver.prototxt"
+	result_csv = "temp/result.csv"
 	
 	caffe_config = {}	
 	caffe_config["net"] = '"network_captchas_with_3_convolutional_layers_train.prototxt"'
