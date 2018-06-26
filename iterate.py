@@ -171,7 +171,7 @@ def main():
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " init")
 	createNewCaptextList()
 	
-	while iter_num < 10 and all_correct_times < 2:
+	while iter_num < 20 and all_correct_times < 2:
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " iteration number {}".format(iter_num))
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
