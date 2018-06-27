@@ -273,7 +273,7 @@ def main():
 				subcall(["cp", "-r", train_files_dir, train_files_dir[0:-1] + "__bak_" + str(caffe_config["max_iter"])])
 		
 		#caffe_config["max_iter"] += 50000 * (100.0 - correct_percentage)
-		caffe_config["max_iter"] += len([name for name in os.listdir(train_files_dir) if os.path.isfile(os.path.join(train_files_dir, name))]) * 5
+		caffe_config["max_iter"] += len([name for name in os.listdir(train_files_dir) if os.path.isfile(os.path.join(train_files_dir, name))]) * 6
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " set new max train iter to ->" + str(caffe_config["max_iter"]) )
 		
 		# train
