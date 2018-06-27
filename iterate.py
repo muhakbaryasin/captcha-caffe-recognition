@@ -171,7 +171,7 @@ def main():
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " init")
 	createNewCaptextList()
 	
-	while iter_num < 3 and all_correct_times < 2:
+	while iter_num < 25 and all_correct_times < 3:
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " iteration number {}".format(iter_num))
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
@@ -233,7 +233,7 @@ def main():
 							# print("{} -> {} != {} salah".format(idx, result[1], result[2]))
 							pass
 						
-						call("echo {},{},{},{} >> {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(result[0]), result[1], caffe_config["max_iter"], result_csv), shell="True")
+						call("echo {},{},{},{} >> {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(result[0]), result[2], caffe_config["max_iter"], result_csv), shell="True")
 						
 						# assign new queue task
 						if queue_no <= total_images_test:
@@ -278,7 +278,7 @@ def main():
 		
 		# train
 		# create train list filename and label
-		# resetTrainList()
+		resetTrainList()
 		subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])
 		
 		# reset images db
