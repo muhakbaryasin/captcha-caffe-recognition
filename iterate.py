@@ -3,7 +3,7 @@ import datetime
 import sys
 from subprocess import call, check_output
 from random import randint
-from copy import copy
+from copy import copy, deepcopy
 import os
 import caffe
 import numpy as np
@@ -62,7 +62,13 @@ def modePakBudiCaptext(total_num_text=10000):
 
 def subcall(list_):
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " " + (" ".join(list_)))
-	call(list_)
+	# call(list_)
+	output = check_output(list_)
+	
+	if output is not None and output != "":
+		# logger.info(output)
+		# raise Exception('ada yang error')
+		pass
 
 def createNewCaptextList():
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " create new captext_list")
@@ -152,9 +158,7 @@ def main():
 	resetTrainList()
 	cleanUpLastTrainDir()
 	cleanUpLastTestDir()
-	subcall(["rm", "-rf", result_csv])
-	subcall(["touch", result_csv])
-	
+		
 	# correct guest percentage
 	correct_percentage = 0.0
 	
@@ -171,7 +175,7 @@ def main():
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " init")
 	createNewCaptextList()
 	
-	while iter_num < 25 and all_correct_times < 3:
+	while iter_num < 30 and all_correct_times < 3:
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " iteration number {}".format(iter_num))
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
@@ -205,7 +209,11 @@ def main():
 			
 			init_task = 4 if total_images_test > 4 else total_images_test
 			list_of_correct = {}
-			queue_no = 1
+			queue_no = 0
+			redun_correct = 0
+			
+			subcall(["rm", "-rf", result_csv])
+			subcall(["touch", result_csv])
 			
 			# load init task
 			for idx in xrange(init_task):
@@ -213,30 +221,41 @@ def main():
 				image_file_path = test_files_dir + each_file
 				correct_string = os.path.splitext(each_file)[0]
 				list_of_test_task[idx] = classifyImage.delay(correct_string, image_file_path, "network_captchas_with_3_convolutional_layers.prototxt", snapshots_dir+last_snapshot['caffemodel'])
-				queue_no += 1
-				
-			#iter_ = 0
+				queue_no += 1				
+			
+			
 			while True:
 				all_ready = True
 				list_of_prediction = []
 				
 				for idx in xrange(init_task):
+					if idx not in list_of_test_task:
+						if len(list_of_files) > 0:
+							each_file = list_of_files.pop(0)
+							image_file_path = test_files_dir + each_file
+							correct_string = os.path.splitext(each_file)[0]
+							list_of_test_task[idx] = classifyImage.delay(correct_string, image_file_path, "network_captchas_with_3_convolutional_layers.prototxt", snapshots_dir+last_snapshot['caffemodel'])
+							queue_no += 1
+							all_ready = False
+						continue
+					
 					# when task's result is ready
 					if list_of_test_task[idx].ready():
-						result = list_of_test_task[idx].get()
+						result = deepcopy( list_of_test_task.pop(idx).get() )
 						
 						if result[0]:
 							#print("{} -> {} == {} benar".format(idx, result[1], result[2]))
-							list_of_correct[ str(result[1]) ] = 0
-							migrateTestFilesToRecognized(result[1], post_fix=caffe_config["max_iter"])
+							migrateTestFilesToRecognized(result[2], post_fix=caffe_config["max_iter"])
+							list_of_correct[ str(result[2]) ] = 0
+							redun_correct += 1
 						else: 
 							# print("{} -> {} != {} salah".format(idx, result[1], result[2]))
 							pass
 						
-						call("echo {},{},{},{} >> {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(result[0]), result[2], caffe_config["max_iter"], result_csv), shell="True")
+						call("echo {},{},{},{},{} >> {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(result[0]), result[1], result[2], caffe_config["max_iter"], result_csv), shell="True")
 						
 						# assign new queue task
-						if queue_no <= total_images_test:
+						if len(list_of_files) > 0:
 							each_file = list_of_files.pop(0)
 							image_file_path = test_files_dir + each_file
 							correct_string = os.path.splitext(each_file)[0]
@@ -255,8 +274,10 @@ def main():
 				
 			#print("==========")
 			#print(iter_)
-			
+			tmp_split = result_csv.split(".")
+			subcall(["mv", result_csv, tmp_split[0] + "_" + str(caffe_config["max_iter"]) + "." + tmp_split[1] ])
 			correct = len(list_of_correct)
+			
 			if correct == total_images_test:
 				logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " wow all correct. 100%")
 				all_correct_times += 1
@@ -265,12 +286,14 @@ def main():
 				createNewCaptextList()
 				correct_percentage = 100.0
 			else :
-				correct_percentage = correct / total_images_test * 100
+				correct_percentage = float(correct) / float(total_images_test) * 100.0
 				logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " booo!!. only correct: " + str(correct) + " images of total: " + str(total_images_test) )
 				convertTestDirToTrainDir()
 				
 				# bakcup train files
 				subcall(["cp", "-r", train_files_dir, train_files_dir[0:-1] + "__bak_" + str(caffe_config["max_iter"])])
+			
+			logger.info("{} queue total -> {}, total image set -> {}, redun_correct -> {}, correct_percentages -> {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), queue_no, total_images_test, redun_correct, correct_percentage))
 		
 		#caffe_config["max_iter"] += 50000 * (100.0 - correct_percentage)
 		caffe_config["max_iter"] += len([name for name in os.listdir(train_files_dir) if os.path.isfile(os.path.join(train_files_dir, name))]) * 6
@@ -279,7 +302,13 @@ def main():
 		# train
 		# create train list filename and label
 		resetTrainList()
-		subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])
+		
+		if correct_percentage < 100.0:
+			subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])
+		if correct_percentage < 75.0:
+			subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])
+		if correct_percentage < 25.0:
+			subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])
 		
 		# reset images db
 		subcall(["rm", "-rf", train_db_dir])
