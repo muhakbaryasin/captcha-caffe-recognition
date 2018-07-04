@@ -158,7 +158,7 @@ def main():
 	resetTrainList()
 	cleanUpLastTrainDir()
 	cleanUpLastTestDir()
-		
+	
 	# correct guest percentage
 	correct_percentage = 0.0
 	
@@ -173,7 +173,7 @@ def main():
 	
 	# init list dataset train
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " init")
-	createNewCaptextList()
+	#createNewCaptextList()
 	
 	while iter_num < 30 and all_correct_times < 3:
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
@@ -221,7 +221,7 @@ def main():
 				image_file_path = test_files_dir + each_file
 				correct_string = os.path.splitext(each_file)[0]
 				list_of_test_task[idx] = classifyImage.delay(correct_string, image_file_path, "network_captchas_with_3_convolutional_layers.prototxt", snapshots_dir+last_snapshot['caffemodel'])
-				queue_no += 1				
+				queue_no += 1
 			
 			
 			while True:
@@ -248,7 +248,7 @@ def main():
 							migrateTestFilesToRecognized(result[2], post_fix=caffe_config["max_iter"])
 							list_of_correct[ str(result[2]) ] = 0
 							redun_correct += 1
-						else: 
+						else:
 							# print("{} -> {} != {} salah".format(idx, result[1], result[2]))
 							pass
 						
