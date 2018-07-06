@@ -1,4 +1,5 @@
 import pdb
+import argparse
 import datetime
 import sys
 from subprocess import call, check_output
@@ -104,6 +105,8 @@ def cleanUpLastTestDir():
 
 def cleanUpRecognizedDir():
 	cleanUpDir(recognized_files_dir)
+	subcall(["touch", recognized_files_dir+"supayakeadd"])
+
 
 def migrateTestFilesToRecognized(filename, post_fix=None):
 	if post_fix is not None:
@@ -146,6 +149,35 @@ def getLastSnapshot():
 			
 			return last_snapshot
 
+def normalizeSnapshotDir(last_max_iteration=0):
+	if last_max_iteration < 1:
+		cleanUpDir(snapshots_dir)
+		return
+	
+	while True:
+		last_snapshot = getLastSnapshot()
+		if int(last_snapshot['iteration']) > int(last_max_iteration):
+			subcall(['rm', '-rf', snapshots_dir+last_snapshot['solverstate'] ])
+			subcall(['rm', '-rf', snapshots_dir+last_snapshot['caffemodel'] ])
+		else : return
+
+def saveGlobalConfig():
+	subcall(["rm", "-rf", global_config_file])
+	subcall(["touch", global_config_file])
+	
+	for each_ in global_config:
+		call("echo {}:{} >> {}".format(each_, global_config[each_]), shell="True")
+
+def loadGlobalConfig():
+	with open(global_config_file) as f:
+		content = f.readlines()
+		
+	for each_line in content:
+		each_line = each_line.strip()
+		tmp_split = each_line.split(':')
+		global_config[tmp_split[0]] = float(tmp_split[1]) if tmp_split[1].find('.') > -1 else int (tmp_split[1]))		
+	
+
 #def classifyImage(input_image, network, caffe_model):
 #	classifier = caffe.Classifier(network, caffe_model, mean=None)
 #	input_images = [input_image]
@@ -160,25 +192,32 @@ def main():
 	cleanUpLastTestDir()
 	
 	# correct guest percentage
-	correct_percentage = 0.0
+	global_config['last_correct_percentage'] = 0.0
 	
 	# max iter set to 0
 	caffe_config["max_iter"] = 0
 	
 	# active learning loop
-	iter_num = 1
+	global_config['iteration_number'] = 1
 	
 	# allright_times -> when all item of captext_list_file fully recognized
-	all_correct_times = 0
+	global_config['all_correct_times'] = 0
 	
 	# init list dataset train
-	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " init")
-	#createNewCaptextList()
+	if args.reset:
+		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " init")
+		cleanUpRecognizedDir()
+		createNewCaptextList()
+		normalizeSnapshotDir()
 	
-	while iter_num < 30 and all_correct_times < 3:
+	else: loadGlobalConfig()
+	
+	while global_config['iteration_number'] < 30 and global_config['all_correct_times'] < 3:
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
-		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " iteration number {}".format(iter_num))
+		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " iteration number {}".format(global_config['iteration_number']))
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
+		
+		global_config['last_caffe_iteration'] = caffe_config["max_iter"]
 		
 		last_snapshot = getLastSnapshot()
 		
@@ -280,22 +319,22 @@ def main():
 			
 			if correct == total_images_test:
 				logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " wow all correct. 100%")
-				all_correct_times += 1
+				global_config['all_correct_times'] += 1
 				# backup last captext list
 				subcall(["cp", "-r", captext_list_file, captext_list_file + "__bak_" + str(caffe_config["max_iter"])])
 				createNewCaptextList()
-				correct_percentage = 100.0
+				global_config['last_correct_percentage'] = 100.0
 			else :
-				correct_percentage = float(correct) / float(total_images_test) * 100.0
+				global_config['last_correct_percentage'] = float(correct) / float(total_images_test) * 100.0
 				logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " booo!!. only correct: " + str(correct) + " images of total: " + str(total_images_test) )
 				convertTestDirToTrainDir()
 				
 				# bakcup train files
 				subcall(["cp", "-r", train_files_dir, train_files_dir[0:-1] + "__bak_" + str(caffe_config["max_iter"])])
 			
-			logger.info("{} queue total -> {}, total image set -> {}, redun_correct -> {}, correct_percentages -> {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), queue_no, total_images_test, redun_correct, correct_percentage))
+			logger.info("{} queue total -> {}, total image set -> {}, redun_correct -> {}, correct_percentages -> {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), queue_no, total_images_test, redun_correct, global_config['last_correct_percentage']))
 		
-		#caffe_config["max_iter"] += 50000 * (100.0 - correct_percentage)
+		#caffe_config["max_iter"] += 50000 * (100.0 - global_config['last_correct_percentage'])
 		caffe_config["max_iter"] += len([name for name in os.listdir(train_files_dir) if os.path.isfile(os.path.join(train_files_dir, name))]) * 6
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " set new max train iter to ->" + str(caffe_config["max_iter"]) )
 		
@@ -303,11 +342,11 @@ def main():
 		# create train list filename and label
 		resetTrainList()
 		
-		if correct_percentage < 100.0:
+		if global_config['last_correct_percentage'] < 100.0:
 			subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])
-		if correct_percentage < 75.0:
+		if global_config['last_correct_percentage'] < 75.0:
 			subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])
-		if correct_percentage < 25.0:
+		if global_config['last_correct_percentage'] < 25.0:
 			subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])
 		
 		# reset images db
@@ -327,7 +366,9 @@ def main():
 			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " continue TRAIN snapshot " + snapshots_dir+last_snapshot['solverstate'])
 			subcall(["caffe", "train", "--solver="+caffe_config_file, "--snapshot="+snapshots_dir+last_snapshot['solverstate'] ])
 		
-		iter_num += 1
+		global_config['last_caffe_iteration'] = caffe_config["max_iter"]
+		global_config['iteration_number'] += 1
+		saveGlobalConfig()
 		
 		
 	
@@ -342,6 +383,14 @@ if __name__ == "__main__":
 	caffe_config_file = "captcha_solver.prototxt"
 	result_csv = "temp/result.csv"
 	
+	global_config_file = "config.txt"
+	
+	global_config = {}
+	global_config['iteration_number'] = 1
+	global_config['last_correct_percentage'] = 0.0
+	global_config['all_correct_times'] = 0
+	global_config['last_caffe_iteration'] = 0
+	
 	caffe_config = {}	
 	caffe_config["net"] = '"network_captchas_with_3_convolutional_layers_train.prototxt"'
 	# The base learning rate, momentum and the weight decay of the network.
@@ -355,11 +404,15 @@ if __name__ == "__main__":
 	# Display every caffe_config["display"] iterations 
 	caffe_config["display"] = 500	
 	# The maximum number of iterations
-	caffe_config["max_iter"] = 50000	
+	caffe_config["max_iter"] = 50000
 	# snapshot intermediate results
 	caffe_config["snapshot"] = 10000	
 	caffe_config["snapshot_prefix"] = '"temp/snapshots/modepakbudi"'
 	# solver mode: CPU or GPU
 	caffe_config["solver_mode"] = 'GPU'
+	
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--reset", help="mulai dari awal", action="store_true")
+	args = parser.parse_args()
 	
 	main()
