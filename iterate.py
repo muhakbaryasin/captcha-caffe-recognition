@@ -65,11 +65,12 @@ def subcall(list_):
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " " + (" ".join(list_)))
 	# call(list_)
 	output = check_output(list_)
-	
+		
 	if output is not None and output != "":
 		# logger.info(output)
 		# raise Exception('ada yang error')
 		pass
+	return output
 
 def createNewCaptextList():
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " create new captext_list")
@@ -90,23 +91,16 @@ def resetTrainList():
 	subcall(["rm", "-rf", train_list_file])
 	subcall(["touch", train_list_file])
 
-def cleanUpDir(dir_path):
+def cleanUpDir(dir_path, remake=True):
 	subcall(["rm", "-rf", dir_path])
-	subcall(["mkdir", dir_path])
+	
+	if remake:
+		subcall(["mkdir", dir_path])
 	#subcall(["touch", dir_path+"supayakeadd"])
-
-def cleanUpLastTrainDir():
-	# reset directory train image captcha
-	cleanUpDir(train_files_dir)
-
-def cleanUpLastTestDir():
-	# reset directory test image captcha
-	cleanUpDir(test_files_dir)
 
 def cleanUpRecognizedDir():
 	cleanUpDir(recognized_files_dir)
 	subcall(["touch", recognized_files_dir+"supayakeadd"])
-
 
 def migrateTestFilesToRecognized(filename, post_fix=None):
 	if post_fix is not None:
@@ -149,8 +143,8 @@ def getLastSnapshot():
 			
 			return last_snapshot
 
-def normalizeSnapshotDir(last_max_iteration=0):
-	if last_max_iteration < 1:
+def normalizeSnapshotDir(last_max_iteration=1):
+	if last_max_iteration < 2:
 		cleanUpDir(snapshots_dir)
 		return
 	
@@ -161,12 +155,34 @@ def normalizeSnapshotDir(last_max_iteration=0):
 			subcall(['rm', '-rf', snapshots_dir+last_snapshot['caffemodel'] ])
 		else : return
 
+def normalizeTrainDir(last_max_iteration=1):
+	output = check_output('ls -1td ' + train_files_dir[0:-1]+'*', shell=True)
+	output = output.split('\n')
+	
+	for each_dir in output:
+		tmp_split = each_dir.split('_')
+		if each_dir.find('__bak_') > -1 and (int(tmp_split[-1]) >= last_max_iteration or last_max_iteration < 2):
+			subcall(['rm', '-rf',  each_dir])
+			
+	cleanUpDir(train_files_dir)
+
+def normalizeTestDir(last_max_iteration=1):
+	output = check_output('ls -1td ' + test_files_dir[0:-1]+'*', shell=True)
+	output = output.split('\n')	
+	
+	for each_dir in output:
+		tmp_split = each_dir.split('_')
+		if each_dir.find('__bak_') > -1 and int(tmp_split[-1]) >= last_max_iteration:
+			subcall(['rm', '-rf',  each_dir])
+			
+	cleanUpDir(test_files_dir)
+
 def saveGlobalConfig():
 	subcall(["rm", "-rf", global_config_file])
 	subcall(["touch", global_config_file])
 	
 	for each_ in global_config:
-		call("echo {}:{} >> {}".format(each_, global_config[each_]), shell="True")
+		call("echo {}:{} >> {}".format(each_, global_config[each_], global_config_file), shell="True")
 
 def loadGlobalConfig():
 	with open(global_config_file) as f:
@@ -175,7 +191,7 @@ def loadGlobalConfig():
 	for each_line in content:
 		each_line = each_line.strip()
 		tmp_split = each_line.split(':')
-		global_config[tmp_split[0]] = float(tmp_split[1]) if tmp_split[1].find('.') > -1 else int (tmp_split[1]))		
+		global_config[tmp_split[0] ] = float(tmp_split[1]) if tmp_split[1].find('.') > -1 else int (tmp_split[1])
 	
 
 #def classifyImage(input_image, network, caffe_model):
@@ -186,43 +202,43 @@ def loadGlobalConfig():
 #	return prediction
 
 def main():
-	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " clean up first")
-	resetTrainList()
-	cleanUpLastTrainDir()
-	cleanUpLastTestDir()
-	
 	# correct guest percentage
-	global_config['last_correct_percentage'] = 0.0
+	# global_config['last_correct_percentage'] = 0.0
 	
 	# max iter set to 0
 	caffe_config["max_iter"] = 0
 	
 	# active learning loop
-	global_config['iteration_number'] = 1
+	# global_config['iteration_number'] = 1
 	
 	# allright_times -> when all item of captext_list_file fully recognized
-	global_config['all_correct_times'] = 0
+	# global_config['all_correct_times'] = 0
 	
-	# init list dataset train
 	if args.reset:
-		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " init")
+		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " Init")
+		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " clean up first")
 		cleanUpRecognizedDir()
 		createNewCaptextList()
-		normalizeSnapshotDir()
 	
-	else: loadGlobalConfig()
+	else:
+		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " Continue")
+		loadGlobalConfig()
+		caffe_config["max_iter"] = global_config['last_caffe_iteration'] 
+	
+	resetTrainList()
+	normalizeSnapshotDir(last_max_iteration=global_config['last_caffe_iteration'])
+	normalizeTestDir(last_max_iteration=global_config['last_caffe_iteration'])
+	normalizeTrainDir(last_max_iteration=global_config['last_caffe_iteration'])
 	
 	while global_config['iteration_number'] < 30 and global_config['all_correct_times'] < 3:
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " iteration number {}".format(global_config['iteration_number']))
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " ==========================================")
 		
-		global_config['last_caffe_iteration'] = caffe_config["max_iter"]
-		
 		last_snapshot = getLastSnapshot()
 		
 		if last_snapshot is None:
-			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " create TRAIN image set based on captext list")
+			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " No snapshot. create TRAIN image set based on captext list")
 			subcall(["php-cgi", "captcha.php", "dest-directory="+train_files_dir, "captext-list="+captext_list_file])
 			
 			# backup
@@ -342,11 +358,9 @@ def main():
 		# create train list filename and label
 		resetTrainList()
 		
-		if global_config['last_correct_percentage'] < 100.0:
-			subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])
-		if global_config['last_correct_percentage'] < 75.0:
-			subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])
-		if global_config['last_correct_percentage'] < 25.0:
+		subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])
+		subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])		
+		if global_config['last_correct_percentage'] < 25.0 or global_config['last_correct_percentage'] > 75.0:
 			subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])
 		
 		# reset images db
@@ -354,17 +368,29 @@ def main():
 		
 		# create new images db
 		subcall(["convert_imageset", "--backend=leveldb","--gray", "--resize_height=0", "--resize_width=0", "--shuffle=true", train_files_dir, train_list_file, train_db_dir])
-		cleanUpLastTrainDir()
+		# cleanUpLastTrainDir()
+		cleanUpDir(train_files_dir)
 		
 		configNewNetCaffe()		
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " caffe TRAIN")
-		# caffe train
-		if last_snapshot is None:
-			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " no snapshot")
-			subcall(["caffe", "train", "--solver="+caffe_config_file])
-		else:
-			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " continue TRAIN snapshot " + snapshots_dir+last_snapshot['solverstate'])
-			subcall(["caffe", "train", "--solver="+caffe_config_file, "--snapshot="+snapshots_dir+last_snapshot['solverstate'] ])
+		
+		# caffe train		
+		temp_attempt = 0
+		while True:			
+			if temp_attempt > 2:
+				break
+			else: sleep(60 * 5); temp_attempt += 1
+			
+			try:
+				if last_snapshot is None:
+					logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " no snapshot")
+					subcall(["caffe", "train", "--solver="+caffe_config_file])
+				else:
+					logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " continue TRAIN snapshot " + snapshots_dir+last_snapshot['solverstate'])
+					subcall(["caffe", "train", "--solver="+caffe_config_file, "--snapshot="+snapshots_dir+last_snapshot['solverstate'] ])
+				break
+			except Exception as e:
+				logger.error(str(e))
 		
 		global_config['last_caffe_iteration'] = caffe_config["max_iter"]
 		global_config['iteration_number'] += 1
