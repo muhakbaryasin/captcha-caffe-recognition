@@ -39,5 +39,5 @@ def classifyImage(correct_string, image_file_path, network, caffe_model):
 		predictedString+=predictedCharacter
 	
 	if predictedString == correct_string:
-		return (True, predictedString, correct_string)
-	else: return (False, predictedString, correct_string)
+		return (True, predictedString, correct_string, image_file_path)
+	else: return (False, predictedString, correct_string, image_file_path)
