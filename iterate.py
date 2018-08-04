@@ -102,11 +102,12 @@ def cleanUpRecognizedDir():
 	cleanUpDir(recognized_files_dir)
 	subcall(["touch", recognized_files_dir+"supayakeadd"])
 
-def migrateTestFilesToRecognized(filename, post_fix=None):
-	if post_fix is not None:
-		post_fix = "__"+str(post_fix)
+def migrateTestFilesToRecognized(full_path, post_fix=None):
+	file_name = full_path.split('/')[-1]
+
+	post_fix = "__"+str(post_fix)
 	
-	call(["mv", test_files_dir+filename, recognized_files_dir+filename+post_fix])
+	call(["mv", full_path, recognized_files_dir+file_name+post_fix])
 
 def convertTestDirToTrainDir():
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " Make TEST image set become TRAIN image set")
@@ -276,8 +277,7 @@ def main():
 				image_file_path = test_files_dir + each_file
 				correct_string = os.path.splitext(each_file)[0]
 				list_of_test_task[idx] = classifyImage.delay(correct_string, image_file_path, "network_captchas_with_3_convolutional_layers.prototxt", snapshots_dir+last_snapshot['caffemodel'])
-				queue_no += 1
-			
+				queue_no += 1			
 			
 			while True:
 				all_ready = True
@@ -300,7 +300,7 @@ def main():
 						
 						if result[0]:
 							#print("{} -> {} == {} benar".format(idx, result[1], result[2]))
-							migrateTestFilesToRecognized(result[2], post_fix=caffe_config["max_iter"])
+							migrateTestFilesToRecognized(result[3], post_fix=caffe_config["max_iter"])
 							list_of_correct[ str(result[2]) ] = 0
 							redun_correct += 1
 						else:
@@ -358,10 +358,15 @@ def main():
 		# create train list filename and label
 		resetTrainList()
 		
-		subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])
-		subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])		
-		if global_config['last_correct_percentage'] < 25.0 or global_config['last_correct_percentage'] > 75.0:
-			subcall(["bash", "create-train-list.sh", train_files_dir, train_list_file])
+		subcall(["bash", "create-train-list-ext.sh", train_files_dir, train_list_file])
+		
+		if global_config['last_correct_percentage'] < 70.0:
+			#subcall(["bash", "create-train-list-ext.sh", train_files_dir, train_list_file])		
+			pass
+		
+		if global_config['last_correct_percentage'] < 25.0: #or global_config['last_correct_percentage'] > 75.0
+			#subcall(["bash", "create-train-list-ext.sh", train_files_dir, train_list_file])
+			pass
 		
 		# reset images db
 		subcall(["rm", "-rf", train_db_dir])
@@ -376,6 +381,7 @@ def main():
 		
 		# caffe train		
 		temp_attempt = 0
+		
 		while True:			
 			if temp_attempt > 2:
 				break

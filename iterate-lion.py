@@ -105,16 +105,15 @@ def cleanUpRecognizedDir():
 def migrateTestFilesToRecognized(full_path, post_fix=None):
 	file_name = full_path.split('/')[-1]
 
-	if post_fix is not None:
-		post_fix = "__"+str(post_fix)
+	post_fix = "__"+str(post_fix)
 	
 	call(["mv", full_path, recognized_files_dir+file_name+post_fix])
 
 def convertTestDirToTrainDir():
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " Make TEST image set become TRAIN image set")
 	subcall(["rm", "-rf", train_files_dir])
-	subcall(["mv", test_files_dir, train_files_dir])
-	subcall(["mkdir", test_files_dir])	
+	subcall(["mv", recognized_files_dir, train_files_dir])
+	subcall(["mkdir", recognized_files_dir])
 
 def configNewNetCaffe():
 	subcall(["rm", "-rf", caffe_config_file])
@@ -312,7 +311,7 @@ def main():
 						
 						if result[0]:
 							#print("{} -> {} == {} benar".format(idx, result[1], result[2]))
-							migrateTestFilesToRecognized(result[3], post_fix=caffe_config["max_iter"])
+							migrateTestFilesToRecognized(result[3])
 							list_of_correct[ result[3].split('/')[-1] ] = 0
 							redun_correct += 1
 						else:
@@ -361,7 +360,7 @@ def main():
 				#subcall(["cp", "-r", "temp/labeled/" + str(global_config['iteration_number']), train_files_dir])
 				
 				# bakcup train files
-				subcall(["cp", "-r", train_files_dir, train_files_dir[0:-1] + "__bak_" + str(caffe_config["max_iter"])])
+				subcall(["cp", "-r", recognized_files_dir, train_files_dir[0:-1] + "__bak_" + str(caffe_config["max_iter"])])
 			
 			logger.info("{} queue total -> {}, total image set -> {}, redun_correct -> {}, correct_percentages -> {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), queue_no, total_images_test, redun_correct, global_config['last_correct_percentage']))
 		

@@ -34,7 +34,7 @@ if (isset($_GET['captext-list'])) {
 		throw new Exception($error);
 	}
 	
-	if (!is_writable ( $_GET['captext-list'] )) {
+	if (!is_readable ( $_GET['captext-list'] )) {
 		$error =  "Cannot access ".$_GET['captext-list']. ". Permission denied.\n";
 		throw new Exception($error);
 	}
@@ -585,10 +585,10 @@ class SimpleCaptcha {
     protected function WriteImage($text) {
         if ($this->imageFormat == 'png' && function_exists('imagepng')) {
             header("Content-type: image/png");
-            imagepng($this->im, $this->dst_dir."/".$text);
+            imagepng($this->im, $this->dst_dir."/".$text.".png");
         } else {
             header("Content-type: image/jpeg");
-            imagejpeg($this->im, $this->dst_dir."/".$text);
+            imagejpeg($this->im, $this->dst_dir."/".$text.".jpg");
         }
     }
 
