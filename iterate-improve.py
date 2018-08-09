@@ -22,6 +22,53 @@ logger.addHandler(handler)
 
 os.environ['GLOG_minloglevel'] = '2'
 
+def getWorstPredict(file_input):
+	subcall(["python", "letter_analyze.py", file_input, "--destdir", "temp/"])
+	
+	file_name = file_input.split('/')[-1].split('.')[0]
+	file_output = "temp/" + file_name + '_suppose_tobe_letter.csv'
+	
+	with open(file_output) as fp:
+		for i, line in enumerate(fp):
+			if i == 1:
+				return line.split(',')
+				
+				
+def intToBin(bin_):
+	fake_bin = ''
+	
+	if bin_ == 0:
+		fake_bin = '0'
+		return fake_bin
+	if bin_ == 1:
+		fake_bin = '1'	
+		return fake_bin
+	
+	while (bin_ > 0):
+		if bin_ % 2 == 0:
+			fake_bin = '0' + fake_bin
+		else: fake_bin = '1' + fake_bin
+		bin_ = bin_ / 2
+	
+	return fake_bin
+	
+
+def additionalText(text_length, a, b, total_num_text):
+	cyclic = 64 # 2 pangkat 6
+	
+	text_list = []
+	
+	for i in xrange(total_num_text):
+		j = i % cyclic		
+		text_list.append('{0:06}'.format(int(intToBin(j))).replace('0',a).replace('1',b))
+	
+	subcall(["rm", "-rf", additional_captext_list_file])
+	subcall(["touch", additional_captext_list_file])
+	
+	# append captext_list to captext_list_file
+	for each_text in text_list:
+		call("echo {} >> {}".format(each_text, additional_captext_list_file), shell="True")
+
 def modePakBudiCaptext(total_num_text=10000):
 	total_num_text = float(total_num_text)
 	alphabet = "abcdefghijklmnopqrstuvwxyz"
@@ -330,7 +377,8 @@ def main():
 			#print("==========")
 			#print(iter_)
 			tmp_split = result_csv.split(".")
-			subcall(["mv", result_csv, tmp_split[0] + "_" + str(caffe_config["max_iter"]) + "." + tmp_split[1] ])
+			result_bak_csv = tmp_split[0] + "_" + str(caffe_config["max_iter"]) + "." + tmp_split[1]
+			subcall(["mv", result_csv, result_bak_csv])
 			correct = len(list_of_correct)
 			
 			if correct == total_images_test:
@@ -344,6 +392,10 @@ def main():
 				global_config['last_correct_percentage'] = float(correct) / float(total_images_test) * 100.0
 				logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " booo!!. only correct: " + str(correct) + " images of total: " + str(total_images_test) )
 				convertTestDirToTrainDir()
+				worst = getWorstPredict(result_bak_csv)
+				additionalText(6, worst[0], worst[1], redun_correct)
+				logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " create additional captcha")
+				subcall(["php-cgi", "captcha-hash.php", "dest-directory="+train_files_dir, "captext-list="+additional_captext_list_file])
 				
 				# bakcup train files
 				subcall(["cp", "-r", train_files_dir, train_files_dir[0:-1] + "__bak_" + str(caffe_config["max_iter"])])
@@ -360,14 +412,12 @@ def main():
 		
 		subcall(["bash", "create-train-list-ext.sh", train_files_dir, train_list_file])
 		
-		#if global_config['last_correct_percentage'] < 70.0:
-		if True:
+		if global_config['last_correct_percentage'] < 60.0:
 			subcall(["bash", "create-train-list-ext.sh", train_files_dir, train_list_file])		
 			pass
 		
-		if global_config['last_correct_percentage'] < 25.0: #or global_config['last_correct_percentage'] > 75.0
-		#if True:
-		#	subcall(["bash", "create-train-list-ext.sh", train_files_dir, train_list_file])
+		if global_config['last_correct_percentage'] < 50.0: #or global_config['last_correct_percentage'] > 75.0
+			subcall(["bash", "create-train-list-ext.sh", train_files_dir, train_list_file])
 			pass
 		
 		# reset images db
@@ -411,6 +461,7 @@ if __name__ == "__main__":
 	test_files_dir = "temp/test-files/"
 	recognized_files_dir = "temp/recognized-files/"
 	captext_list_file = "temp/captcha-text-list.txt"
+	additional_captext_list_file = "temp/additional-captcha-text-list.txt"
 	train_list_file = "temp/train-list.txt"
 	train_db_dir = "temp/train.db"
 	snapshots_dir = "temp/snapshots/"

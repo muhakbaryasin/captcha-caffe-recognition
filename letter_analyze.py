@@ -60,7 +60,7 @@ if __name__ == "__main__":
 		path += '/'
 	
 	file_path = args.filepath
-	file_name = file_path.split('/')[-1].split('.')[0]	
+	file_name = file_path.split('/')[-1].split('.')[0]
 
 	suppose_tobe_letter = path + file_name + '_suppose_tobe_letter.csv'
 	wrong_guest_letter = path + file_name + '_wrong_guest_letter.csv'
