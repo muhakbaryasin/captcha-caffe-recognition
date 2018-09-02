@@ -22,51 +22,58 @@ logger.addHandler(handler)
 
 os.environ['GLOG_minloglevel'] = '2'
 
-def getWorstPredict(file_input):
+def additionalText(file_input, total_num_text):
 	subcall(["python", "letter_analyze.py", file_input, "--destdir", "temp/"])
-	
 	file_name = file_input.split('/')[-1].split('.')[0]
 	file_output = "temp/" + file_name + '_suppose_tobe_letter.csv'
+	incorrect_occurance = 0
+	data_list = []
 	
 	with open(file_output) as fp:
 		for i, line in enumerate(fp):
-			if i == 1:
-				return line.split(',')
+			if i > 0:
+				tmp_split = line.split(',')
+				data = []
+				data.append(tmp_split[0])
+				data.append(tmp_split[1])
+				data.append(int(tmp_split[2]))
+				data_list.append(copy(data))
+				incorrect_occurance += int(tmp_split[2])
+	# import pdb; pdb.set_trace()
+	captext_list = []
+	alphabet = "abcdefghijklmnopqrstuvwxyz"
+	captext_len = 6
+	captext_total = 0
+	
+	for data in data_list:
+		num_text = int ( ( float(data[2]) / incorrect_occurance )  * total_num_text )		
+		
+		for i in xrange(num_text):
+			captext = ""
+			a_rand = 0; b_rand = 0		
+			
+			# pick index where each_letter would be in		
+			while a_rand == b_rand:
+				a_rand = randint(0, captext_len - 1)
+				b_rand = randint(0, captext_len - 1)
+			
+			for letter_id in xrange(captext_len):
+				random_letter = alphabet[randint(0, len(alphabet) - 1 )]
 				
-				
-def intToBin(bin_):
-	fake_bin = ''
+				if a_rand == letter_id:
+					captext += data[0]
+				elif b_rand == letter_id:
+					captext += data[1]
+				else: captext += random_letter
+			captext_list.append(captext)
+			captext_total += 1
 	
-	if bin_ == 0:
-		fake_bin = '0'
-		return fake_bin
-	if bin_ == 1:
-		fake_bin = '1'	
-		return fake_bin
-	
-	while (bin_ > 0):
-		if bin_ % 2 == 0:
-			fake_bin = '0' + fake_bin
-		else: fake_bin = '1' + fake_bin
-		bin_ = bin_ / 2
-	
-	return fake_bin
-	
-
-def additionalText(text_length, a, b, total_num_text):
-	cyclic = 64 # 2 pangkat 6
-	
-	text_list = []
-	
-	for i in xrange(total_num_text):
-		j = i % cyclic		
-		text_list.append('{0:06}'.format(int(intToBin(j))).replace('0',a).replace('1',b))
-	
+	subcall(["echo", "{} of registered additional captext".format(captext_total) ])
 	subcall(["rm", "-rf", additional_captext_list_file])
 	subcall(["touch", additional_captext_list_file])
 	
 	# append captext_list to captext_list_file
-	for each_text in text_list:
+	for each_text in captext_list:
 		call("echo {} >> {}".format(each_text, additional_captext_list_file), shell="True")
 
 def modePakBudiCaptext(total_num_text=10000):
@@ -297,6 +304,7 @@ def main():
 			
 			# test
 			# create test images
+			createNewCaptextList()
 			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " create TEST image set based on captext list")
 			subcall(["php-cgi", "captcha-hash.php", "dest-directory="+test_files_dir, "captext-list="+captext_list_file])
 			
@@ -392,8 +400,8 @@ def main():
 				global_config['last_correct_percentage'] = float(correct) / float(total_images_test) * 100.0
 				logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " booo!!. only correct: " + str(correct) + " images of total: " + str(total_images_test) )
 				convertTestDirToTrainDir()
-				worst = getWorstPredict(result_bak_csv)
-				additionalText(6, worst[0], worst[1], redun_correct)
+				
+				additionalText(result_bak_csv, redun_correct)
 				logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " create additional captcha")
 				subcall(["php-cgi", "captcha-hash.php", "dest-directory="+train_files_dir, "captext-list="+additional_captext_list_file])
 				
@@ -413,7 +421,7 @@ def main():
 		subcall(["bash", "create-train-list-ext.sh", train_files_dir, train_list_file])
 		
 		if global_config['last_correct_percentage'] < 60.0:
-			subcall(["bash", "create-train-list-ext.sh", train_files_dir, train_list_file])		
+			subcall(["bash", "create-train-list-ext.sh", train_files_dir, train_list_file])
 			pass
 		
 		if global_config['last_correct_percentage'] < 50.0: #or global_config['last_correct_percentage'] > 75.0
@@ -453,9 +461,12 @@ def main():
 		global_config['last_caffe_iteration'] = caffe_config["max_iter"]
 		global_config['iteration_number'] += 1
 		saveGlobalConfig()
-		
-		
-	
+
+"""if __name__ == "__main__":
+	result_bak_csv = 'temp/result_60060.csv'
+	additional_captext_list_file = 'temp/additional-captcha-text-list.txt'
+	additionalText(result_bak_csv, 100)
+"""	
 if __name__ == "__main__":
 	train_files_dir = "temp/train-files/"
 	test_files_dir = "temp/test-files/"
@@ -501,3 +512,4 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	
 	main()
+

@@ -22,61 +22,7 @@ logger.addHandler(handler)
 
 os.environ['GLOG_minloglevel'] = '2'
 
-def additionalText(file_input, total_num_text):
-	subcall(["python", "letter_analyze.py", file_input, "--destdir", "temp/"])
-	file_name = file_input.split('/')[-1].split('.')[0]
-	file_output = "temp/" + file_name + '_suppose_tobe_letter.csv'
-	incorrect_occurance = 0
-	data_list = []
-	
-	with open(file_output) as fp:
-		for i, line in enumerate(fp):
-			if i > 0:
-				tmp_split = line.split(',')
-				data = []
-				data.append(tmp_split[0])
-				data.append(tmp_split[1])
-				data.append(int(tmp_split[2]))
-				data_list.append(copy(data))
-				incorrect_occurance += int(tmp_split[2])
-	# import pdb; pdb.set_trace()
-	captext_list = []
-	alphabet = "abcdefghijklmnopqrstuvwxyz"
-	captext_len = 6
-	captext_total = 0
-	
-	for data in data_list:
-		num_text = int ( ( float(data[2]) / incorrect_occurance )  * total_num_text )		
-		
-		for i in xrange(num_text):
-			captext = ""
-			a_rand = 0; b_rand = 0		
-			
-			# pick index where each_letter would be in		
-			a_rand = randint(0, captext_len - 1)
-			while a_rand == b_rand:
-				b_rand = randint(0, captext_len - 1)
-			
-			for letter_id in xrange(captext_len):
-				random_letter = alphabet[randint(0, len(alphabet) - 1 )]
-				
-				if a_rand == letter_id:
-					captext += data[0]
-				elif b_rand == letter_id:
-					captext += data[1]
-				else: captext += random_letter
-			captext_list.append(captext)
-			captext_total += 1
-	
-	subcall(["echo", "{} of registered additional captext".format(captext_total) ])
-	subcall(["rm", "-rf", additional_captext_list_file])
-	subcall(["touch", additional_captext_list_file])
-	
-	# append captext_list to captext_list_file
-	for each_text in captext_list:
-		call("echo {} >> {}".format(each_text, additional_captext_list_file), shell="True")
-
-def modePakBudiCaptext(total_num_text=10000):
+def modeNeutral(total_num_text=10000):
 	total_num_text = float(total_num_text)
 	alphabet = "abcdefghijklmnopqrstuvwxyz"
 	captext_list = []
@@ -97,8 +43,10 @@ def modePakBudiCaptext(total_num_text=10000):
 				for letter_id in xrange(6):
 					random_letter = alphabet[randint(0, len(alphabet) - 1 )]
 					
-					if i_rand == letter_id:
-						captext += each_letter
+					#if i_rand == letter_id:
+					#	captext += each_letter
+					if False:
+						pass
 					else: captext += random_letter
 					
 					# add new line after last char
@@ -128,7 +76,8 @@ def subcall(list_):
 
 def createNewCaptextList():
 	logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " create new captext_list")
-	captext_list = modePakBudiCaptext()
+	#captext_list = modePakBudiCaptext()
+	captext_list = modeNeutral()
 	subcall(["rm", "-rf", captext_list_file])
 	subcall(["touch", captext_list_file])
 	
@@ -304,6 +253,7 @@ def main():
 			
 			# test
 			# create test images
+			createNewCaptextList()
 			logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " create TEST image set based on captext list")
 			subcall(["php-cgi", "captcha-hash.php", "dest-directory="+test_files_dir, "captext-list="+captext_list_file])
 			
@@ -384,8 +334,7 @@ def main():
 			#print("==========")
 			#print(iter_)
 			tmp_split = result_csv.split(".")
-			result_bak_csv = tmp_split[0] + "_" + str(caffe_config["max_iter"]) + "." + tmp_split[1]
-			subcall(["mv", result_csv, result_bak_csv])
+			subcall(["mv", result_csv, tmp_split[0] + "_" + str(caffe_config["max_iter"]) + "." + tmp_split[1] ])
 			correct = len(list_of_correct)
 			
 			if correct == total_images_test:
@@ -399,10 +348,6 @@ def main():
 				global_config['last_correct_percentage'] = float(correct) / float(total_images_test) * 100.0
 				logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " booo!!. only correct: " + str(correct) + " images of total: " + str(total_images_test) )
 				convertTestDirToTrainDir()
-				
-				additionalText(result_bak_csv, redun_correct)
-				logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " create additional captcha")
-				subcall(["php-cgi", "captcha-hash.php", "dest-directory="+train_files_dir, "captext-list="+additional_captext_list_file])
 				
 				# bakcup train files
 				subcall(["cp", "-r", train_files_dir, train_files_dir[0:-1] + "__bak_" + str(caffe_config["max_iter"])])
@@ -460,18 +405,14 @@ def main():
 		global_config['last_caffe_iteration'] = caffe_config["max_iter"]
 		global_config['iteration_number'] += 1
 		saveGlobalConfig()
-
-"""if __name__ == "__main__":
-	result_bak_csv = 'temp/result_60060.csv'
-	additional_captext_list_file = 'temp/additional-captcha-text-list.txt'
-	additionalText(result_bak_csv, 100)
-"""	
+		
+		
+	
 if __name__ == "__main__":
 	train_files_dir = "temp/train-files/"
 	test_files_dir = "temp/test-files/"
 	recognized_files_dir = "temp/recognized-files/"
 	captext_list_file = "temp/captcha-text-list.txt"
-	additional_captext_list_file = "temp/additional-captcha-text-list.txt"
 	train_list_file = "temp/train-list.txt"
 	train_db_dir = "temp/train.db"
 	snapshots_dir = "temp/snapshots/"
@@ -511,4 +452,3 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	
 	main()
-
