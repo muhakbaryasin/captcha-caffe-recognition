@@ -16,7 +16,7 @@ np.set_printoptions(threshold=np.nan)
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-handler = logging.FileHandler('iterate.log')
+handler = logging.FileHandler('main.log')
 handler.setLevel(logging.INFO)
 logger.addHandler(handler)
 
@@ -45,6 +45,7 @@ def additionalText(file_input, total_num_text):
 	captext_len = 6
 	captext_total = 0
 	
+	# proportionate strafified
 	for data in data_list:
 		num_text = int ( ( float(data[2]) / incorrect_occurance )  * total_num_text )		
 		
@@ -77,6 +78,7 @@ def additionalText(file_input, total_num_text):
 		call("echo {} >> {}".format(each_text, additional_captext_list_file), shell="True")
 
 def modePakBudiCaptext(total_num_text=10000):
+	# simple stratified
 	total_num_text = float(total_num_text)
 	alphabet = "abcdefghijklmnopqrstuvwxyz"
 	captext_list = []
@@ -101,11 +103,6 @@ def modePakBudiCaptext(total_num_text=10000):
 						captext += each_letter
 					else: captext += random_letter
 					
-					# add new line after last char
-					#if letter_id == 5:
-					#	captext += "\n"
-				
-				# tambahkan ke list. kembar juga gak papa
 				if captext not in captext_list:
 					captext_list.append(captext)
 					break
@@ -135,11 +132,7 @@ def createNewCaptextList():
 	# append captext_list to captext_list_file
 	for each_text in captext_list:
 		call("echo {} >> {}".format(each_text, captext_list_file), shell="True")
-		
-	#with open(captext_list_file, "a") as myfile:
-	#	for each_text in captext_list:
-	#		myfile.write(each_text)
-
+	
 def resetTrainList():
 	# reset list text captcha
 	subcall(["rm", "-rf", train_list_file])
@@ -249,13 +242,6 @@ def loadGlobalConfig():
 		global_config[tmp_split[0] ] = float(tmp_split[1]) if tmp_split[1].find('.') > -1 else int (tmp_split[1])
 	
 
-#def classifyImage(input_image, network, caffe_model):
-#	classifier = caffe.Classifier(network, caffe_model, mean=None)
-#	input_images = [input_image]
-#	
-#	prediction = classifier.predict(input_images, oversample=False)
-#	return prediction
-
 def main():
 	# correct guest percentage
 	# global_config['last_correct_percentage'] = 0.0
@@ -268,7 +254,7 @@ def main():
 	
 	# allright_times -> when all item of captext_list_file fully recognized
 	# global_config['all_correct_times'] = 0
-	
+	import pdb; pdb.set_trace()
 	if args.reset:
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " Init")
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " clean up first")
@@ -379,11 +365,9 @@ def main():
 				if all_ready:
 					break
 				
-				#iter_ += 1
 				sleep(0.7)
 				
-			#print("==========")
-			#print(iter_)
+			
 			tmp_split = result_csv.split(".")
 			result_bak_csv = tmp_split[0] + "_" + str(caffe_config["max_iter"]) + "." + tmp_split[1]
 			subcall(["mv", result_csv, result_bak_csv])
@@ -410,7 +394,6 @@ def main():
 			
 			logger.info("{} queue total -> {}, total image set -> {}, redun_correct -> {}, correct_percentages -> {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), queue_no, total_images_test, redun_correct, global_config['last_correct_percentage']))
 		
-		#caffe_config["max_iter"] += 50000 * (100.0 - global_config['last_correct_percentage'])
 		caffe_config["max_iter"] += len([name for name in os.listdir(train_files_dir) if os.path.isfile(os.path.join(train_files_dir, name))]) * 6
 		logger.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " set new max train iter to ->" + str(caffe_config["max_iter"]) )
 		
@@ -433,7 +416,6 @@ def main():
 		
 		# create new images db
 		subcall(["convert_imageset", "--backend=leveldb","--gray", "--resize_height=0", "--resize_width=0", "--shuffle=true", train_files_dir, train_list_file, train_db_dir])
-		# cleanUpLastTrainDir()
 		cleanUpDir(train_files_dir)
 		
 		configNewNetCaffe()		
@@ -462,11 +444,7 @@ def main():
 		global_config['iteration_number'] += 1
 		saveGlobalConfig()
 
-"""if __name__ == "__main__":
-	result_bak_csv = 'temp/result_60060.csv'
-	additional_captext_list_file = 'temp/additional-captcha-text-list.txt'
-	additionalText(result_bak_csv, 100)
-"""	
+
 if __name__ == "__main__":
 	train_files_dir = "temp/train-files/"
 	test_files_dir = "temp/test-files/"
@@ -500,7 +478,7 @@ if __name__ == "__main__":
 	# Display every caffe_config["display"] iterations 
 	caffe_config["display"] = 500	
 	# The maximum number of iterations
-	caffe_config["max_iter"] = 50000
+	caffe_config["max_iter"] = 0
 	# snapshot intermediate results
 	caffe_config["snapshot"] = 10000	
 	caffe_config["snapshot_prefix"] = '"temp/snapshots/modepakbudi"'
